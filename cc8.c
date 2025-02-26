@@ -1,3 +1,9 @@
+/**
+ * TODO: sync VM to 500 hz
+ *       decrement timers at 60 hz
+ *       sound timer audio
+ */
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -52,20 +58,72 @@ typedef struct {
     uint16_t *SP;     // stack pointer
 
     Cc8_Key key;
+    uint16_t keys;
 } State;
+
+void cc8_load_default_font(State *state, uint16_t addr)
+{
+    uint16_t glyphs[] = {
+        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+        0x20, 0x60, 0x20, 0x20, 0x70, // 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+        0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+    };
+    
+    for(size_t i = 0; i < sizeof(glyphs)/sizeof(glyphs[0]); ++i)
+    {
+        memset(state->memory + addr + i, glyphs[i], 1);
+    }
+}
 
 void cc8_init(State *state)
 {
     /*state->SP = malloc(sizeof(uint16_t) * STACK_SIZE);*/
-    state->SP = (uint16_t *) state->memory + (RAM_SIZE - (sizeof(uint16_t) * STACK_SIZE));
 
     memset(state->memory, 0, RAM_SIZE);
     memset(state->framebuffer, 0, DISPLAY_SIZE);
     memset(state->V, 0, 0xF);
 
+    state->SP = (uint16_t *) state->memory + (RAM_SIZE - (sizeof(uint16_t) * STACK_SIZE));
+
     state->key = CC8_KEY_NONE;
+    state->keys = 0;
+
+    cc8_load_default_font(state, 0x50);
     
+    state->PC = 0x200;
+
     srand(time(NULL));
+}
+
+void cc8_tick_timers(State *state)
+{
+    if(state->DT > 0) --state->DT;
+    if(state->ST > 0) --state->ST;
+}
+
+void cc8_set_key(State *state, Cc8_Key key)
+{
+    state->key = key;
+    if(key != CC8_KEY_NONE) state->keys |= 1 << key;
+}
+
+void cc8_unset_key(State *state, Cc8_Key key)
+{
+    if(state->key == key) state->key = CC8_KEY_NONE;
+    if(key != CC8_KEY_NONE) state->keys &= ~(1 << key);
 }
 
 bool cc8_cell_is_on_xy(State *state, uint8_t x, uint8_t y)
@@ -94,8 +152,17 @@ void cc8_print_display(State *state)
 
 uint16_t cc8_fetch(State *state)
 {
-    uint16_t instruction = state->memory[state->PC] << 8 | state->memory[state->PC+1];
+    /*uint16_t instruction = (state->memory[state->PC] << 8) | (state->memory[state->PC+1]);*/
+    uint16_t instruction = (state->memory[state->PC]) | (state->memory[state->PC+1] << 8);  // reverse byte order
     state->PC+=2;
+    return instruction;
+}
+
+uint16_t cc8_fetch_debug(State *state)
+{
+    uint16_t instruction = (state->memory[state->PC]) | (state->memory[state->PC + 1] << 8);
+    printf("%03X:   %04X\n", state->PC, instruction);
+    state->PC += 2;
     return instruction;
 }
 
@@ -108,6 +175,8 @@ uint16_t cc8_stack_pop(uint16_t **sp)
 {
     return *(--(*sp));
 }
+
+// OPS {{{
 
 void cc8_cls(State *state)
 {
@@ -275,13 +344,79 @@ void cc8_drw_rrn(State *state, uint8_t vx, uint8_t vy, uint8_t n)
 
 void cc8_skp(State *state, uint8_t reg)
 {
-    assert(false && "TODO: get current key");
+    if(state->keys & (1 << state->V[reg]))
+    {
+        state->PC += 2;
+    }
 }
 
 void cc8_sknp(State *state, uint8_t reg)
 {
-    assert(false && "TODO: get current key");
+    if(!(state->keys & (1 << state->V[reg])))
+    {
+        state->PC += 2;
+    }
 }
+
+void cc8_ld_r_dt(State *state, uint8_t x)
+{
+    state->V[x] = state->DT;
+}
+
+void cc8_ldk_r(State *state, uint8_t x)
+{
+    while(state->key == CC8_KEY_NONE);
+    state->V[x] = state->key;
+}
+
+void cc8_lddt_r(State *state, uint8_t x)
+{
+    state->DT = state->V[x];
+}
+
+void cc8_ldst_r(State *state, uint8_t x)
+{
+    state->ST = state->V[x];
+}
+
+void cc8_addi_r(State *state, uint8_t x)
+{
+    state->I += state->V[x];
+}
+
+void cc8_ldf_r(State *state, uint8_t x)
+{
+    state->I = 0x50 + (state->V[x] * 5);
+}
+
+void cc8_ldb_r(State *state, uint8_t x)
+{
+    uint8_t hundreds = (state->V[x] / 100) & 0xF;
+    uint8_t tens = ((state->V[x] - hundreds) / 10) & 0xF;
+    uint8_t ones = ((state->V[x] - hundreds - tens) / 1) & 0xF;
+
+    state->memory[state->I + 0] = hundreds;
+    state->memory[state->I + 1] = tens;
+    state->memory[state->I + 2] = ones;
+}
+
+void cc8_ldi_r(State *state, uint8_t x)
+{
+    for(size_t i = 0; i < x; ++i)
+    {
+        state->memory[state->I + i] = state->V[i];
+    }
+}
+
+void cc8_ld_r(State *state, uint8_t x)
+{
+    for(size_t i = 0; i < x; ++i)
+    {
+        state->V[i] = state->memory[state->I + i];
+    }
+}
+
+// OPS }}}
 
 void cc8_execute(State *state, uint16_t instruction)
 {
@@ -388,49 +523,24 @@ void cc8_execute(State *state, uint16_t instruction)
             else break;
         } break;
 
-        case 0xF: {} break;
-
+        case 0xF: {
+            switch(y << 4 | n)
+            {
+                case 0x07: cc8_ld_r_dt(state, x); break;
+                case 0x0A: cc8_ldk_r(state, x); break;
+                case 0x15: cc8_lddt_r(state, x); break;
+                case 0x18: cc8_ldst_r(state, x); break;
+                case 0x1E: cc8_addi_r(state, x); break;
+                case 0x29: cc8_ldf_r(state, x); break;
+                case 0x33: cc8_ldb_r(state, x); break;
+                case 0x55: cc8_ldi_r(state, x); break;
+                case 0x65: cc8_ld_r(state, x); break;
+            }
+        } break;
 
         default: {
             fprintf(stderr, "INVALID INSTRUCTION: %X\n", instruction);
             exit(EXIT_FAILURE);
         } break;
     }
-}
-
-void cc8_load_default_font(State *state, uint16_t addr)
-{
-    uint16_t glyphs[] = {
-        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-        0x20, 0x60, 0x20, 0x20, 0x70, // 1
-        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-        0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-    };
-    
-    for(size_t i = 0; i < sizeof(glyphs)/sizeof(glyphs[0]); ++i)
-    {
-        memset(state->memory + addr + i, glyphs[i], 1);
-    }
-}
-
-void cc8_set_key(State *state, Cc8_Key key)
-{
-    state->key = key;
-}
-
-void cc8_unset_key(State *state, Cc8_Key key)
-{
-    if(state->key == key) state->key = CC8_KEY_NONE;
 }

@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #define return_defer(value) do { result = (value); goto defer; } while(0)
 
@@ -73,25 +75,75 @@ int main(int argc, char **argv)
 
     State s = {0};
     cc8_init(&s);
-    cc8_load_default_font(&s, 0x50);
 
-    cc8_ld_rb(&s, 1, 0x00);
+    // V1: x
+    // V2: y
+    // V3: c
+    // V4: x limit
+    uint16_t buf[] = {
+        0x00E0,   // CLS
 
-    size_t x = 0;
-    size_t c = 0;
-    while(x < 64)
-    {
-        cc8_ld_rb(&s, 0, x);
-        cc8_ldi(&s, 0x50 + c);
-        cc8_drw_rrn(&s, 0, 1, 5);
+        0x6100,   // V1 = 0
+        0x6200,   // V2 = 0
+        0x6300,   // V3 = 0
+        0x6440,   // V4 = 64
 
-        x += 5;
-        c += 5;
-    }
+        // OFFSET = 0x211
+        0xF329,   // I = FONT(V[3])
+        0xD125,   // DRAW 5 (V[1], V[2])
+
+        0x7105,   // INC V[1] by 5
+        0x7301,   // INC V[3] by 1
+
+        0x8001,   // V[0] = V[1]
+        0x8044,   // V[0] = V[4] - V[0]
+        0x3F00,   // if !(V[0] < 0) skip
+        0x1222,   // JMP halt
+
+        0x65FF,   // V[5] = 255
+        0x8054,   // V[0] = V[0] + V[5]
+        0x4F01,   // if V[0] == 0 skip
+        0x120A,   // JMP top
+        // OFFSET = 0x222
+        0x1222,   // JMP halt
+
+    };
+
+    memcpy(s.memory + 0x200, buf, 36);
+
+    /*cc8_execute(&s, 0x6000);*/
+    /*cc8_execute(&s, 0x6100);*/
+    /*cc8_execute(&s, 0x6200);*/
+    /**/
+    /*cc8_ld_rb(&s, 0, 0x00);*/
+    /*cc8_ld_rb(&s, 1, 0x00);*/
+    /*cc8_ld_rb(&s, 2, 0x00);*/
+
+    /*size_t x = 0;*/
+    /*size_t c = 0;*/
+    /*while(x < 64)*/
+    /*{*/
+    /*    cc8_ld_rb(&s, 0, x);*/
+    /*    cc8_ldi(&s, 0x50 + c);*/
+    /*    cc8_drw_rrn(&s, 0, 1, 5);*/
+    /**/
+    /*    x += 5;*/
+    /*    c += 5;*/
+    /*}*/
+
+    /*long time = 0;*/
+    /*long last_time = 0;*/
+    /*long delta_time = 0;*/
 
     bool running = true;
     while(running)
     {
+        struct timespec tp;
+        if(clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp) != 0)
+        {
+            fprintf(stderr, "failed to get process time: %s\n", strerror(errno));
+        }
+
         SDL_Event event;
         while(SDL_PollEvent(&event))
         {
@@ -123,6 +175,8 @@ int main(int argc, char **argv)
                         case SDL_SCANCODE_X: cc8_set_key(&s, CC8_KEY_0); break;
                         case SDL_SCANCODE_C: cc8_set_key(&s, CC8_KEY_B); break;
                         case SDL_SCANCODE_V: cc8_set_key(&s, CC8_KEY_F); break;
+
+                        case SDL_SCANCODE_K: cc8_execute(&s, cc8_fetch_debug(&s)); break;
                         default: break;
                     }
                 } break;
