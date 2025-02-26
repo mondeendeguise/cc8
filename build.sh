@@ -2,4 +2,4 @@
 
 set -xe
 
-cc -Wall -Wextra -pedantic -ggdb main.c cc8.c -o cc8 -lSDL3
+cc -Wall -Wextra -pedantic -ggdb main.c cc8.c cc8_ops.c -o cc8 -lSDL3

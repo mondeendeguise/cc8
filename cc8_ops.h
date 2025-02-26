@@ -1,0 +1,36 @@
+#include "cc8.h"
+
+void cc8_cls(Cc8_Context *ctx);
+void cc8_ret(Cc8_Context *ctx);
+void cc8_jp(Cc8_Context *ctx, uint16_t addr);
+void cc8_call(Cc8_Context *ctx, uint16_t addr);
+void cc8_se_rb(Cc8_Context *ctx, uint8_t reg, uint8_t byte);
+void cc8_sne_rb(Cc8_Context *ctx, uint8_t reg, uint8_t byte);
+void cc8_se_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_ld_rb(Cc8_Context *ctx, uint8_t reg, uint8_t byte);
+void cc8_add_rb(Cc8_Context *ctx, uint8_t reg, uint8_t byte);
+void cc8_ld_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_or_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_and_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_xor_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_add_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_sub_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_shr_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_subn_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_shl_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_sne_rr(Cc8_Context *ctx, uint8_t x, uint8_t y);
+void cc8_ldi(Cc8_Context *ctx, uint16_t addr);
+void cc8_jpv0_a(Cc8_Context *ctx, uint16_t addr);
+void cc8_rnd_rb(Cc8_Context *ctx, uint8_t reg, uint8_t byte);
+void cc8_drw_rrn(Cc8_Context *ctx, uint8_t vx, uint8_t vy, uint8_t n);
+void cc8_skp(Cc8_Context *ctx, uint8_t reg);
+void cc8_sknp(Cc8_Context *ctx, uint8_t reg);
+void cc8_ld_r_dt(Cc8_Context *ctx, uint8_t x);
+void cc8_ldk_r(Cc8_Context *ctx, uint8_t x);
+void cc8_lddt_r(Cc8_Context *ctx, uint8_t x);
+void cc8_ldst_r(Cc8_Context *ctx, uint8_t x);
+void cc8_addi_r(Cc8_Context *ctx, uint8_t x);
+void cc8_ldf_r(Cc8_Context *ctx, uint8_t x);
+void cc8_ldb_r(Cc8_Context *ctx, uint8_t x);
+void cc8_ldi_r(Cc8_Context *ctx, uint8_t x);
+void cc8_ld_r(Cc8_Context *ctx, uint8_t x);
