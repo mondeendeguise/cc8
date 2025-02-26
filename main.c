@@ -1,10 +1,11 @@
-#include "cc8.c"
+#include "cc8.h"
 
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_error.h>
 
+#include <time.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -73,8 +74,8 @@ int main(int argc, char **argv)
 
     surface = SDL_CreateSurface(WINDOW_WIDTH, WINDOW_HEIGHT, SDL_PIXELFORMAT_RGBA8888);
 
-    State s = {0};
-    cc8_init(&s);
+    Cc8_Context ctx = {0};
+    cc8_init(&ctx);
 
     // V1: x
     // V2: y
@@ -109,23 +110,23 @@ int main(int argc, char **argv)
 
     };
 
-    memcpy(s.memory + 0x200, buf, 36);
+    memcpy(ctx.memory + 0x200, buf, 36);
 
-    /*cc8_execute(&s, 0x6000);*/
-    /*cc8_execute(&s, 0x6100);*/
-    /*cc8_execute(&s, 0x6200);*/
+    /*cc8_execute(&ctx, 0x6000);*/
+    /*cc8_execute(&ctx, 0x6100);*/
+    /*cc8_execute(&ctx, 0x6200);*/
     /**/
-    /*cc8_ld_rb(&s, 0, 0x00);*/
-    /*cc8_ld_rb(&s, 1, 0x00);*/
-    /*cc8_ld_rb(&s, 2, 0x00);*/
+    /*cc8_ld_rb(&ctx, 0, 0x00);*/
+    /*cc8_ld_rb(&ctx, 1, 0x00);*/
+    /*cc8_ld_rb(&ctx, 2, 0x00);*/
 
     /*size_t x = 0;*/
     /*size_t c = 0;*/
     /*while(x < 64)*/
     /*{*/
-    /*    cc8_ld_rb(&s, 0, x);*/
-    /*    cc8_ldi(&s, 0x50 + c);*/
-    /*    cc8_drw_rrn(&s, 0, 1, 5);*/
+    /*    cc8_ld_rb(&ctx, 0, x);*/
+    /*    cc8_ldi(&ctx, 0x50 + c);*/
+    /*    cc8_drw_rrn(&ctx, 0, 1, 5);*/
     /**/
     /*    x += 5;*/
     /*    c += 5;*/
@@ -156,27 +157,27 @@ int main(int argc, char **argv)
 
                     else switch(event.key.scancode)
                     {
-                        case SDL_SCANCODE_1: cc8_set_key(&s, CC8_KEY_1); break;
-                        case SDL_SCANCODE_2: cc8_set_key(&s, CC8_KEY_2); break;
-                        case SDL_SCANCODE_3: cc8_set_key(&s, CC8_KEY_3); break;
-                        case SDL_SCANCODE_4: cc8_set_key(&s, CC8_KEY_C); break;
+                        case SDL_SCANCODE_1: cc8_set_key(&ctx, CC8_KEY_1); break;
+                        case SDL_SCANCODE_2: cc8_set_key(&ctx, CC8_KEY_2); break;
+                        case SDL_SCANCODE_3: cc8_set_key(&ctx, CC8_KEY_3); break;
+                        case SDL_SCANCODE_4: cc8_set_key(&ctx, CC8_KEY_C); break;
 
-                        case SDL_SCANCODE_Q: cc8_set_key(&s, CC8_KEY_4); break;
-                        case SDL_SCANCODE_W: cc8_set_key(&s, CC8_KEY_5); break;
-                        case SDL_SCANCODE_E: cc8_set_key(&s, CC8_KEY_6); break;
-                        case SDL_SCANCODE_R: cc8_set_key(&s, CC8_KEY_D); break;
+                        case SDL_SCANCODE_Q: cc8_set_key(&ctx, CC8_KEY_4); break;
+                        case SDL_SCANCODE_W: cc8_set_key(&ctx, CC8_KEY_5); break;
+                        case SDL_SCANCODE_E: cc8_set_key(&ctx, CC8_KEY_6); break;
+                        case SDL_SCANCODE_R: cc8_set_key(&ctx, CC8_KEY_D); break;
 
-                        case SDL_SCANCODE_A: cc8_set_key(&s, CC8_KEY_7); break;
-                        case SDL_SCANCODE_S: cc8_set_key(&s, CC8_KEY_8); break;
-                        case SDL_SCANCODE_D: cc8_set_key(&s, CC8_KEY_9); break;
-                        case SDL_SCANCODE_F: cc8_set_key(&s, CC8_KEY_E); break;
+                        case SDL_SCANCODE_A: cc8_set_key(&ctx, CC8_KEY_7); break;
+                        case SDL_SCANCODE_S: cc8_set_key(&ctx, CC8_KEY_8); break;
+                        case SDL_SCANCODE_D: cc8_set_key(&ctx, CC8_KEY_9); break;
+                        case SDL_SCANCODE_F: cc8_set_key(&ctx, CC8_KEY_E); break;
 
-                        case SDL_SCANCODE_Z: cc8_set_key(&s, CC8_KEY_A); break;
-                        case SDL_SCANCODE_X: cc8_set_key(&s, CC8_KEY_0); break;
-                        case SDL_SCANCODE_C: cc8_set_key(&s, CC8_KEY_B); break;
-                        case SDL_SCANCODE_V: cc8_set_key(&s, CC8_KEY_F); break;
+                        case SDL_SCANCODE_Z: cc8_set_key(&ctx, CC8_KEY_A); break;
+                        case SDL_SCANCODE_X: cc8_set_key(&ctx, CC8_KEY_0); break;
+                        case SDL_SCANCODE_C: cc8_set_key(&ctx, CC8_KEY_B); break;
+                        case SDL_SCANCODE_V: cc8_set_key(&ctx, CC8_KEY_F); break;
 
-                        case SDL_SCANCODE_K: cc8_execute(&s, cc8_fetch_debug(&s)); break;
+                        case SDL_SCANCODE_K: cc8_execute(&ctx, cc8_fetch_debug(&ctx)); break;
                         default: break;
                     }
                 } break;
@@ -184,32 +185,32 @@ int main(int argc, char **argv)
                 case SDL_EVENT_KEY_UP: {
                     switch(event.key.scancode)
                     {
-                        case SDL_SCANCODE_1: cc8_unset_key(&s, CC8_KEY_1); break;
-                        case SDL_SCANCODE_2: cc8_unset_key(&s, CC8_KEY_2); break;
-                        case SDL_SCANCODE_3: cc8_unset_key(&s, CC8_KEY_3); break;
-                        case SDL_SCANCODE_4: cc8_unset_key(&s, CC8_KEY_C); break;
+                        case SDL_SCANCODE_1: cc8_unset_key(&ctx, CC8_KEY_1); break;
+                        case SDL_SCANCODE_2: cc8_unset_key(&ctx, CC8_KEY_2); break;
+                        case SDL_SCANCODE_3: cc8_unset_key(&ctx, CC8_KEY_3); break;
+                        case SDL_SCANCODE_4: cc8_unset_key(&ctx, CC8_KEY_C); break;
 
-                        case SDL_SCANCODE_Q: cc8_unset_key(&s, CC8_KEY_4); break;
-                        case SDL_SCANCODE_W: cc8_unset_key(&s, CC8_KEY_5); break;
-                        case SDL_SCANCODE_E: cc8_unset_key(&s, CC8_KEY_6); break;
-                        case SDL_SCANCODE_R: cc8_unset_key(&s, CC8_KEY_D); break;
+                        case SDL_SCANCODE_Q: cc8_unset_key(&ctx, CC8_KEY_4); break;
+                        case SDL_SCANCODE_W: cc8_unset_key(&ctx, CC8_KEY_5); break;
+                        case SDL_SCANCODE_E: cc8_unset_key(&ctx, CC8_KEY_6); break;
+                        case SDL_SCANCODE_R: cc8_unset_key(&ctx, CC8_KEY_D); break;
 
-                        case SDL_SCANCODE_A: cc8_unset_key(&s, CC8_KEY_7); break;
-                        case SDL_SCANCODE_S: cc8_unset_key(&s, CC8_KEY_8); break;
-                        case SDL_SCANCODE_D: cc8_unset_key(&s, CC8_KEY_9); break;
-                        case SDL_SCANCODE_F: cc8_unset_key(&s, CC8_KEY_E); break;
+                        case SDL_SCANCODE_A: cc8_unset_key(&ctx, CC8_KEY_7); break;
+                        case SDL_SCANCODE_S: cc8_unset_key(&ctx, CC8_KEY_8); break;
+                        case SDL_SCANCODE_D: cc8_unset_key(&ctx, CC8_KEY_9); break;
+                        case SDL_SCANCODE_F: cc8_unset_key(&ctx, CC8_KEY_E); break;
 
-                        case SDL_SCANCODE_Z: cc8_unset_key(&s, CC8_KEY_A); break;
-                        case SDL_SCANCODE_X: cc8_unset_key(&s, CC8_KEY_0); break;
-                        case SDL_SCANCODE_C: cc8_unset_key(&s, CC8_KEY_B); break;
-                        case SDL_SCANCODE_V: cc8_unset_key(&s, CC8_KEY_F); break;
+                        case SDL_SCANCODE_Z: cc8_unset_key(&ctx, CC8_KEY_A); break;
+                        case SDL_SCANCODE_X: cc8_unset_key(&ctx, CC8_KEY_0); break;
+                        case SDL_SCANCODE_C: cc8_unset_key(&ctx, CC8_KEY_B); break;
+                        case SDL_SCANCODE_V: cc8_unset_key(&ctx, CC8_KEY_F); break;
                         default: break;
                     }
                 } break;
             }
         }
 
-        /*printf("KEY: %X\n", s.key);*/
+        /*printf("KEY: %X\n", ctx.key);*/
 
         SDL_RenderClear(renderer);
 
@@ -217,7 +218,7 @@ int main(int argc, char **argv)
         {
             for(size_t x = 0; x < 64; ++x)
             {
-                SDL_Color color = (cc8_cell_is_on_xy(&s, x, y) ? color_on : color_off);
+                SDL_Color color = (cc8_cell_is_on_xy(&ctx, x, y) ? color_on : color_off);
                 SDL_FillSurfaceRect(surface, &grid[(y * 64) + x], SDL_MapRGBA(pixel_format_details, NULL, color.r, color.g, color.b, color.a));
             }
         }
