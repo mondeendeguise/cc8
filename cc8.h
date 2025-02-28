@@ -49,15 +49,24 @@ typedef struct {
 } Cc8_Context;
 
 void cc8_init(Cc8_Context *ctx);
+
+void cc8_print_display(Cc8_Context *ctx);
+
 void cc8_tick_timers(Cc8_Context *ctx);
+
+bool cc8_cell_is_on_xy(Cc8_Context *ctx, uint8_t x, uint8_t y);
+
 void cc8_set_key(Cc8_Context *ctx, Cc8_Key key);
 void cc8_unset_key(Cc8_Context *ctx, Cc8_Key key);
-bool cc8_cell_is_on_xy(Cc8_Context *ctx, uint8_t x, uint8_t y);
-void cc8_print_display(Cc8_Context *ctx);
-uint16_t cc8_fetch(Cc8_Context *ctx);
-uint16_t cc8_fetch_debug(Cc8_Context *ctx);
+
 void cc8_stack_push(uint16_t **sp, uint16_t item);
 uint16_t cc8_stack_pop(uint16_t **sp);
+
+uint16_t cc8_fetch(Cc8_Context *ctx);
+uint16_t cc8_fetch_debug(Cc8_Context *ctx);
+
 void cc8_execute(Cc8_Context *ctx, uint16_t instruction);
+
+bool cc8_read_file(Cc8_Context *ctx, const char *file);
 
 #endif // CC8_H_

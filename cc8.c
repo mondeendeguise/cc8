@@ -8,6 +8,7 @@
 #include "cc8_ops.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -104,19 +105,26 @@ void cc8_print_display(Cc8_Context *ctx)
     }
 }
 
+// TODO: fix byte order shenanigans
 uint16_t cc8_fetch(Cc8_Context *ctx)
 {
-    /*uint16_t instruction = (ctx->memory[ctx->PC] << 8) | (ctx->memory[ctx->PC+1]);*/
-    uint16_t instruction = (ctx->memory[ctx->PC]) | (ctx->memory[ctx->PC+1] << 8);  // reverse byte order
+    uint16_t instruction = (ctx->memory[ctx->PC] << 8) | (ctx->memory[ctx->PC+1]);
+    /*uint16_t instruction = (ctx->memory[ctx->PC]) | (ctx->memory[ctx->PC+1] << 8);  // reverse byte order*/
     ctx->PC+=2;
     return instruction;
 }
 
 uint16_t cc8_fetch_debug(Cc8_Context *ctx)
 {
-    uint16_t instruction = (ctx->memory[ctx->PC]) | (ctx->memory[ctx->PC + 1] << 8);
-    printf("%03X:   %04X\n", ctx->PC, instruction);
-    ctx->PC += 2;
+    uint16_t instruction = cc8_fetch(ctx);
+    printf("%03X: %04X  ", ctx->PC, instruction);
+
+    for(size_t i = 0; i < 0xF; ++i)
+    {
+        printf("V%lX = %02X  ", i, ctx->V[i]);
+    }
+    printf("\n");
+
     return instruction;
 }
 
@@ -255,4 +263,58 @@ void cc8_execute(Cc8_Context *ctx, uint16_t instruction)
             exit(EXIT_FAILURE);
         } break;
     }
+}
+
+bool cc8_read_file(Cc8_Context *ctx, const char *file)
+{
+    uint8_t *buf = NULL;
+    FILE *fp = NULL;
+
+    fp = fopen(file, "rb");
+    if(!fp)
+    {
+        fprintf(stderr, "failed to open file `%s`: %s\n", file, strerror(errno));
+        return false;
+    }
+
+    if(fseek(fp, 0, SEEK_END) < 0) goto defer;
+
+    long int filesize = ftell(fp);
+    if(filesize < 0) goto defer;
+    if(filesize % 2 != 0) ++filesize;
+
+    buf = malloc(filesize);
+    if(!buf)
+    {
+        fprintf(stderr, "failed to allocate %li bytes: %s\n", filesize, strerror(errno));
+        goto defer;
+    }
+
+    if(fseek(fp, 0, SEEK_SET) < 0)
+    {
+        goto defer;
+    }
+
+    fread(buf, 1, filesize, fp);
+    if(ferror(fp))
+    {
+        goto defer;
+    }
+
+    /*for(long int i = 0; i < filesize; i += 2) // reverse byte order*/
+    /*{*/
+    /*    uint8_t temp = buf[i];*/
+    /*    buf[i] = buf[i + 1];*/
+    /*    buf[i + 1] = temp;*/
+    /*}*/
+
+    memcpy(ctx->memory + 0x200, buf, filesize);
+
+defer:
+
+    if(buf) free(buf);
+    if(fp) fclose(fp);
+
+    return buf;
+
 }

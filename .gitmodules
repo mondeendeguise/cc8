@@ -1,0 +1,3 @@
+[submodule "chip-8"]
+	path = chip-8
+	url = git@github.com:mattmikolay/chip-8.git
