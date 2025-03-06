@@ -318,3 +318,16 @@ defer:
     return buf;
 
 }
+
+void cc8_memdump(Cc8_Context *ctx)
+{
+    for(size_t i = 0; i < RAM_SIZE / 16; ++i)
+    {
+        printf("%03lX: ", i * 16);
+        for(size_t j = 0; j < 16; ++j)
+        {
+            printf("%02X ", ctx->memory[i * 16 + j]);
+        }
+        printf("\n");
+    }
+}

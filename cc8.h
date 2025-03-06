@@ -36,7 +36,7 @@ typedef struct {
     uint8_t framebuffer[DISPLAY_SIZE]; // 64 * 32 binary display
 
     uint8_t memory[RAM_SIZE];
-    uint8_t V[0xF]; // general purpose registers
+    uint8_t V[16]; // general purpose registers
     uint8_t DT;     // delay timer
     uint8_t ST;     // sound timer
     uint16_t I;     // only 12 lowest bits are used
@@ -68,5 +68,7 @@ uint16_t cc8_fetch_debug(Cc8_Context *ctx);
 void cc8_execute(Cc8_Context *ctx, uint16_t instruction);
 
 bool cc8_read_file(Cc8_Context *ctx, const char *file);
+
+void cc8_memdump(Cc8_Context *ctx);
 
 #endif // CC8_H_
