@@ -1,8 +1,13 @@
+/**
+ * TODO: only draw on draw calls!! CPU usage is through the roof rn
+ */
+
 #include "cc8.h"
 
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_render.h>
+#include <SDL3/SDL_audio.h>
 #include <SDL3/SDL_error.h>
 
 #include <time.h>
@@ -26,10 +31,15 @@
 int main(int argc, char **argv)
 {
 
+    // TODO: allow user to pass filepath arg to run chip-8 binary
+    (void) argc;
+    (void) argv;
+
     int result = 0;
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     SDL_Surface *surface = NULL;
+    SDL_AudioStream *audiostream = NULL;
 
     if(!SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "pulseaudio"))
     {
@@ -74,20 +84,16 @@ int main(int argc, char **argv)
 
     surface = SDL_CreateSurface(WINDOW_WIDTH, WINDOW_HEIGHT, SDL_PIXELFORMAT_RGBA8888);
 
+    audiostream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL, NULL, NULL);
+
     Cc8_Context ctx = {0};
     cc8_init(&ctx);
 
-#ifdef EXAMPLE_HEART_MONITOR
-#include "examples/heart_monitor.c"
-    memcpy(ctx.memory + 0x200, heart_monitor, heart_monitor_size);
-#endif // EXAMPLE_HEART_MONITOR
+    // TODO: create cc8_write_instruction_to_memory(...) function
+    //       must swap bytes before writing to memory
 
-#ifdef EXAMPLE_ABC
-#include "examples/abc.c"
-    memcpy(ctx.memory + 0x200, abc, abc_size);
-#endif // EXAMPLE_ABC
-
-    cc8_read_file(&ctx, "chip-8/heartmonitor/heart_monitor.ch8");
+    if(argc > 1) cc8_read_file(&ctx, argv[1]);
+    /*cc8_read_file(&ctx, "chip-8/heartmonitor/heart_monitor.ch8");*/
 
     /*long time = 0;*/
     /*long last_time = 0;*/
@@ -211,6 +217,7 @@ int main(int argc, char **argv)
 
 defer:
 
+    if(audiostream) SDL_DestroyAudioStream(audiostream);
     if(surface) SDL_DestroySurface(surface);
     if(renderer) SDL_DestroyRenderer(renderer);
     if(window) SDL_DestroyWindow(window);
